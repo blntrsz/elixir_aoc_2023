@@ -1,0 +1,84 @@
+<!-- livebook:{"file_entries":[{"name":"day_1.txt","type":"attachment"}]} -->
+
+# Advent of code
+
+## Part 1
+
+```elixir
+defmodule ParserModule do
+  def parse_into_double_digit_number(arr) do
+    last_element = List.last(arr)
+    first_element = List.first(arr)
+
+    case Integer.parse(first_element <> last_element) do
+      :errorr -> ""
+      {int_val, ""} -> int_val
+    end
+  end
+end
+
+file = File.read("#{__DIR__}/files/day_1.txt")
+
+parsed_file =
+  case file do
+    {:ok, file_content} -> file_content
+    {:error} -> ""
+  end
+
+parsed_file
+|> String.split("\n", trim: true)
+|> Enum.map(fn s ->
+  s
+  |> String.split("", trim: true)
+  |> Enum.filter(fn c -> Regex.match?(~r/\d/, c) end)
+end)
+|> Enum.map(&ParserModule.parse_into_double_digit_number(&1))
+|> Enum.reduce(fn x, acc -> x + acc end)
+```
+
+## Part 2
+
+```elixir
+defmodule ReplacerModule do
+  def replace(lines) when is_list(lines) do
+    pairs = [
+      {"one", "1"},
+      {"two", "2"},
+      {"three", "3"},
+      {"four", "4"},
+      {"five", "5"},
+      {"six", "6"},
+      {"seven", "7"},
+      {"eight", "8"},
+      {"nine", "9"}
+    ]
+
+    lines
+    |> Enum.map(fn line ->
+      Enum.reduce(pairs, line, fn pair, acc ->
+        {ns, s} = pair
+        String.replace(acc, "#{ns}", "#{ns}#{s}#{ns}")
+      end)
+    end)
+  end
+
+  def concatena_last_first(arr) do
+    last_element = arr |> List.last()
+    first_element = arr |> List.first()
+
+    case Integer.parse(first_element <> last_element) do
+      :error -> ""
+      {int_val, ""} -> int_val
+    end
+  end
+end
+
+parsed_file
+|> String.split("\n", trim: true)
+|> ReplacerModule.replace()
+|> Enum.map(fn n -> Regex.scan(~r/[1-9]/, n) |> List.flatten() end)
+|> Enum.map(&ReplacerModule.concatena_last_first(&1))
+|> Enum.reduce(fn x, acc -> x + acc end)
+
+# 54649 == result
+```
