@@ -1,4 +1,4 @@
-<!-- livebook:{"file_entries":[{"name":"day_1.txt","type":"attachment"}]} -->
+<!-- livebook:{"file_entries":[{"name":"day_1.txt","type":"attachment"},{"file":{"file_system_id":"local","file_system_type":"local","path":"/home/blntrsz/p/elixir_aoc_2023/day_2.livemd"},"name":"day_2.livemd","type":"file"}]} -->
 
 # Advent of code
 
@@ -82,3 +82,5 @@ parsed_file
 
 # 54649 == result
 ```
+
+<!-- livebook:{"offset":1945,"stamp":{"token":"XCP.tQsdGG6T-SdjNF51sMqmZbL2l3FG4sS5USU2FviF0nA2Tw0XnCswtTEl1j4Sp4BoelGhBFzE0GpmfwbjBudFHn_IBD776a3kTmL1ug","version":2}} -->

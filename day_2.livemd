@@ -1,0 +1,99 @@
+# Day 2
+
+```elixir
+Mix.install([{:kino, github: "livebook-dev/kino"}])
+```
+
+## Input
+
+```elixir
+input = Kino.Input.textarea("Put your input here:")
+```
+
+## Part 1
+
+```elixir
+defmodule Rgb do
+  defstruct red: 0, green: 0, blue: 0
+end
+```
+
+```elixir
+input = Kino.Input.read(input)
+
+red = 12
+green = 13
+blue = 14
+
+input
+|> String.replace("Game ", "")
+|> String.split("\n", trim: true)
+|> Enum.map(fn line ->
+  String.split(line, ": ")
+  |> Enum.map(fn el -> String.split(el, "; ") end)
+end)
+|> Enum.map(fn line ->
+  [head | tail] = line
+
+  games =
+    List.flatten(tail)
+    |> Enum.map(fn game ->
+      String.split(game, ", ", trim: true)
+      |> Enum.reduce(%Rgb{}, fn x, acc ->
+        case String.split(x, " ") do
+          [n, "red"] -> %{acc | red: String.to_integer(n)}
+          [n, "green"] -> %{acc | green: String.to_integer(n)}
+          [n, "blue"] -> %{acc | blue: String.to_integer(n)}
+        end
+      end)
+    end)
+
+  {List.first(head), games}
+end)
+|> Enum.filter(fn {_, game} ->
+  Enum.map(game, fn %Rgb{red: r, blue: b, green: g} ->
+    r <= red and b <= blue and g <= green
+  end)
+  |> Enum.all?()
+end)
+|> Enum.map(fn {a, _} -> String.to_integer(a) end)
+|> Enum.sum()
+```
+
+## Part 2
+
+```elixir
+input
+|> String.replace("Game ", "")
+|> String.split("\n", trim: true)
+|> Enum.map(fn line ->
+  String.split(line, ": ")
+  |> Enum.map(fn el -> String.split(el, "; ") end)
+end)
+|> Enum.map(fn line ->
+  [head | tail] = line
+
+  games =
+    List.flatten(tail)
+    |> Enum.map(fn game ->
+      String.split(game, ", ", trim: true)
+      |> Enum.reduce(%Rgb{}, fn x, acc ->
+        case String.split(x, " ") do
+          [n, "red"] -> %{acc | red: String.to_integer(n)}
+          [n, "green"] -> %{acc | green: String.to_integer(n)}
+          [n, "blue"] -> %{acc | blue: String.to_integer(n)}
+        end
+      end)
+    end)
+    |> Enum.reduce(%Rgb{}, fn %Rgb{red: r, green: g, blue: b}, acc ->
+      %Rgb{red: acc_r, green: acc_g, blue: acc_b} = acc
+      %{acc | red: Enum.max([r, acc_r]), blue: Enum.max([b, acc_b]), green: Enum.max([g, acc_g])}
+    end)
+
+  {List.first(head), games}
+end)
+|> Enum.map(fn {_, %Rgb{red: r, green: g, blue: b}} ->
+  r * g * b
+end)
+|> Enum.sum()
+```
