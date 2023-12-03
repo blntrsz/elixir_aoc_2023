@@ -1,0 +1,191 @@
+# Day 3
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.11.3"}
+])
+```
+
+## Setup
+
+```elixir
+input = Kino.Input.textarea("Put your input here:")
+```
+
+```elixir
+input = Kino.Input.read(input)
+```
+
+## Day 1
+
+```elixir
+parsed_input =
+  input
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn x -> String.split(x, "", trim: true) end)
+
+indexed_parsed_input =
+  parsed_input
+  |> Enum.with_index(fn row, row_index ->
+    row
+    |> Enum.with_index(fn column, column_index ->
+      {column, row_index, column_index}
+    end)
+  end)
+
+special_chars =
+  for arr <- indexed_parsed_input, {char, row_index, column_index} <- arr do
+    if !Regex.match?(~r/(\d|\.)/, char) do
+      {row_index, column_index}
+    end
+  end
+  |> Enum.filter(fn x -> !is_nil(x) end)
+
+numbers =
+  for arr <- indexed_parsed_input,
+      {char, row_index, column_index} <- arr do
+    if Regex.match?(~r/\d/, char) do
+      {char, row_index, column_index}
+    end
+  end
+  |> Enum.chunk_by(fn x -> !is_nil(x) end)
+  |> Enum.filter(fn [head | _] -> !is_nil(head) end)
+
+matchs =
+  numbers
+  |> Enum.map(fn number_row ->
+    for {_, number_row_index, number_column_index} <- number_row,
+        {special_char_row_index, special_char_column_index} <- special_chars do
+      is_next_row =
+        number_row_index == special_char_row_index or
+          number_row_index == special_char_row_index - 1 or
+          number_row_index == special_char_row_index + 1
+
+      is_next_column =
+        number_column_index == special_char_column_index or
+          number_column_index == special_char_column_index - 1 or
+          number_column_index == special_char_column_index + 1
+
+      if is_next_row and is_next_column do
+        {number_row_index, number_column_index}
+      end
+    end
+  end)
+  |> List.flatten()
+  |> Enum.filter(fn x -> !is_nil(x) end)
+
+numbers
+|> Enum.filter(fn number_row ->
+  Enum.map(number_row, fn {_, row_index, column_index} ->
+    Enum.map(matchs, fn {match_row_index, match_column_index} ->
+      if row_index == match_row_index and column_index == match_column_index do
+        true
+      end
+    end)
+  end)
+  |> List.flatten()
+  |> Enum.any?()
+end)
+|> Enum.map(fn number_row ->
+  Enum.reduce(number_row, "", fn {char, _, _}, acc ->
+    acc <> char
+  end)
+end)
+|> Enum.map(&String.to_integer/1)
+|> Enum.sum()
+```
+
+## part 2
+
+```elixir
+parsed_input =
+  input
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn x -> String.split(x, "", trim: true) end)
+
+indexed_parsed_input =
+  parsed_input
+  |> Enum.with_index(fn row, row_index ->
+    row
+    |> Enum.with_index(fn column, column_index ->
+      {column, row_index, column_index}
+    end)
+  end)
+
+special_chars =
+  for arr <- indexed_parsed_input, {char, row_index, column_index} <- arr do
+    if Regex.match?(~r/\*/, char) do
+      {row_index, column_index}
+    end
+  end
+  |> Enum.filter(fn x -> !is_nil(x) end)
+
+numbers =
+  for arr <- indexed_parsed_input,
+      {char, row_index, column_index} <- arr do
+    if Regex.match?(~r/\d/, char) do
+      {char, row_index, column_index}
+    end
+  end
+  |> Enum.chunk_by(fn x -> !is_nil(x) end)
+  |> Enum.filter(fn [head | _] -> !is_nil(head) end)
+
+matchs =
+  numbers
+  |> Enum.map(fn number_row ->
+    for {_, number_row_index, number_column_index} <- number_row,
+        {special_char_row_index, special_char_column_index} <- special_chars do
+      nb =
+        [
+          number_row_index == special_char_row_index,
+          number_row_index == special_char_row_index - 1,
+          number_row_index == special_char_row_index + 1,
+          number_column_index == special_char_column_index,
+          number_column_index == special_char_column_index - 1,
+          number_column_index == special_char_column_index + 1
+        ]
+        |> Enum.filter(fn x -> x end)
+        |> length()
+
+      if nb >= 2 do
+        {number_row_index, number_column_index}
+      end
+    end
+  end)
+  |> List.flatten()
+  |> Enum.filter(fn x -> !is_nil(x) end)
+
+special_chars
+|> Enum.map(fn {special_char_row_index, special_char_column_index} ->
+  numbers
+  |> Enum.filter(fn number_row ->
+    Enum.find(number_row, fn {_, number_row_index, number_column_index} ->
+      nb =
+        [
+          number_row_index == special_char_row_index,
+          number_row_index == special_char_row_index - 1,
+          number_row_index == special_char_row_index + 1,
+          number_column_index == special_char_column_index,
+          number_column_index == special_char_column_index - 1,
+          number_column_index == special_char_column_index + 1
+        ]
+        |> Enum.filter(fn x -> x end)
+        |> length()
+
+      nb == 2
+    end)
+  end)
+end)
+|> Enum.filter(fn x -> length(x) == 2 end)
+|> Enum.map(fn number_row ->
+  Enum.map(
+    number_row,
+    &Enum.reduce(&1, "", fn {char, _, _}, acc ->
+      acc <> char
+    end)
+  )
+  |> Enum.map(&String.to_integer/1)
+end)
+|> Enum.map(fn [first, second] -> first * second end)
+|> Enum.sum()
+```
