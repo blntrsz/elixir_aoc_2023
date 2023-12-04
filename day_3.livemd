@@ -16,7 +16,7 @@ input = Kino.Input.textarea("Put your input here:")
 input = Kino.Input.read(input)
 ```
 
-## Day 1
+## part 1
 
 ```elixir
 parsed_input =

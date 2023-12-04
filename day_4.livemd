@@ -1,0 +1,120 @@
+# Day 4
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.11.3"}
+])
+```
+
+## Setup
+
+```elixir
+input = Kino.Input.textarea("Put your input here:")
+```
+
+```elixir
+input = Kino.Input.read(input)
+```
+
+## part 1
+
+```elixir
+input
+|> String.split("\n", trim: true)
+|> Enum.map(fn line ->
+  line
+  |> String.replace(~r/Card \d+: /, "")
+  |> String.split(" | ")
+  |> Enum.map(&String.split(&1, " ", trim: true))
+  |> then(fn nums ->
+    [winning_numbers, numbers] = nums
+
+    for winning_number <- winning_numbers, number <- numbers do
+      winning_number == number
+    end
+    |> Enum.filter(fn x -> x end)
+    |> length()
+  end)
+end)
+|> Enum.reduce(0, fn x, acc ->
+  acc +
+    1 *
+      if x == 0 do
+        0
+      else
+        :math.pow(2, x - 1)
+      end
+end)
+```
+
+## Part 2
+
+```elixir
+defmodule Card do
+  defstruct winning_numbers: [], numbers: [], line_number: 0, count: 1
+
+  def count_winning(%Card{
+        winning_numbers: winning_numbers,
+        numbers: numbers,
+        line_number: _line_number
+      }) do
+    for winning_number <- winning_numbers, number <- numbers do
+      winning_number == number
+    end
+    |> Enum.filter(fn x -> x end)
+    |> length()
+  end
+end
+
+defmodule GameState do
+  defstruct cards: [], played_cards: []
+
+  def new(string_input) do
+    string_input
+    |> String.split("\n", trim: true)
+    |> Enum.with_index()
+    |> Enum.map(fn {line, index} ->
+      line
+      |> String.replace(~r/Card \d+: /, "")
+      |> String.split(" | ")
+      |> then(fn [head, tail] ->
+        %Card{
+          winning_numbers: String.split(head, " ", trim: true),
+          numbers: String.split(tail, " ", trim: true),
+          line_number: index + 1
+        }
+      end)
+    end)
+    |> then(fn cards -> %GameState{cards: cards} end)
+  end
+
+  def play(%GameState{cards: [head | tail], played_cards: played_cards}) do
+    winning_count = Card.count_winning(head)
+    %Card{line_number: line_number, count: head_count} = head
+
+    Enum.map(tail, fn %Card{line_number: current_line_number, count: count} = card ->
+      if line_number + winning_count >= current_line_number do
+        count + head_count
+      else
+        count
+      end
+      |> then(fn x -> %Card{card | count: x} end)
+    end)
+    |> then(fn rest_cards ->
+      play(%GameState{cards: rest_cards, played_cards: played_cards ++ [head]})
+    end)
+  end
+
+  def play(%GameState{cards: [], played_cards: played_cards}) do
+    played_cards
+    |> Enum.map(fn %Card{count: count} -> count end)
+    |> Enum.sum()
+  end
+end
+```
+
+```elixir
+input
+|> GameState.new()
+|> GameState.play()
+```
