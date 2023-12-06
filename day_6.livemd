@@ -1,0 +1,67 @@
+# Day 6
+
+## Setup
+
+```elixir
+Mix.install([{:kino, github: "livebook-dev/kino"}])
+```
+
+```elixir
+input = Kino.Input.textarea("Put your input here:")
+```
+
+```elixir
+input = Kino.Input.read(input)
+```
+
+## part 1
+
+```elixir
+[time, distance] =
+  input
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn x ->
+    x
+    |> String.replace(~r/(Time: *|Distance: *)/, "")
+    |> String.split(" ", trim: true)
+    |> Enum.map(&String.to_integer/1)
+  end)
+
+Enum.zip(time, distance)
+|> Enum.map(fn {t, d} ->
+  for ms <- 0..t do
+    ms * (t - ms) > d
+  end
+  |> Enum.count(fn x -> x end)
+end)
+|> Enum.reduce(fn x, acc -> x * acc end)
+```
+
+## part 2
+
+```elixir
+[time, distance] =
+  input
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn x ->
+    x
+    |> String.replace(~r/(Time: *|Distance: *)/, "")
+    |> String.split(" ", trim: true)
+    |> Enum.map(&String.to_integer/1)
+  end)
+
+Enum.zip(time, distance)
+|> Enum.reduce(fn {t, d}, {acc_t, acc_d} ->
+  new_t = (Integer.to_string(acc_t) <> Integer.to_string(t)) |> String.to_integer()
+  new_d = (Integer.to_string(acc_d) <> Integer.to_string(d)) |> String.to_integer()
+
+  {new_t, new_d}
+end)
+|> IO.inspect()
+|> then(fn {t, d} ->
+  for ms <- 0..t do
+    ms * (t - ms) > d
+  end
+  |> Enum.count(fn x -> x end)
+end)
+```
