@@ -1,0 +1,158 @@
+# Day 5
+
+## Setup
+
+```elixir
+Mix.install([{:kino, github: "livebook-dev/kino"}])
+```
+
+```elixir
+input = Kino.Input.textarea("Put your input here:")
+```
+
+```elixir
+input = Kino.Input.read(input)
+```
+
+## part 1
+
+```elixir
+defmodule MapModule do
+  def parse([["seeds" | seeds] | rest]) do
+    seeds
+    |> List.first()
+    |> String.split(" ", trim: true)
+    |> List.flatten()
+    |> then(fn new_seeds -> parse(rest, new_seeds) end)
+  end
+
+  def parse([[_map_name | maps_array] | rest], seeds) do
+    new_seeds = map_seeds_with_map(seeds, maps_array)
+
+    parse(rest, new_seeds)
+  end
+
+  def parse([], seeds) do
+    seeds
+  end
+
+  defp map_seeds_with_map(seeds, maps_array) do
+    Enum.map(seeds, fn seed ->
+      matching_map =
+        maps_array
+        |> Enum.map(&String.split(&1, " "))
+        |> Enum.find(fn [_destination, source, range] ->
+          s = String.to_integer(source)
+          r = String.to_integer(range)
+          seed_int = String.to_integer(seed)
+
+          s + r - 1 >= seed_int and s <= seed_int
+        end)
+
+      if is_nil(matching_map) do
+        seed
+      else
+        [destination, source, _range] = matching_map
+
+        s = String.to_integer(source)
+        d = String.to_integer(destination)
+
+        Integer.to_string(String.to_integer(seed) + d - s)
+      end
+    end)
+  end
+end
+```
+
+```elixir
+input
+|> String.split("\n\n", trim: true)
+|> Enum.map(fn x -> String.split(x, ~r/(:\n|: |\n)/, trim: true) end)
+|> MapModule.parse()
+|> Enum.map(&String.to_integer/1)
+|> Enum.min()
+```
+
+## part 2
+
+```elixir
+defmodule MapModulePart2 do
+  @timeout 500_000_000_000
+
+  def parse([["seeds" | seeds] | rest]) do
+    seeds
+    |> List.first()
+    |> String.split(" ", trim: true)
+    |> List.flatten()
+    |> Enum.chunk_every(2)
+    |> Enum.map(
+      &Task.async(fn ->
+        [seed_number, range] = &1
+        sn = String.to_integer(seed_number)
+        r = String.to_integer(range)
+
+        sn..(sn + r)
+        |> Enum.map(fn x -> Task.async(fn -> Integer.to_string(x) end) end)
+        |> Enum.map(fn x -> Task.await(x, @timeout) end)
+      end)
+    )
+    |> Enum.map(fn x -> Task.await(x, @timeout) end)
+    |> List.flatten()
+    |> then(fn new_seeds -> parse(rest, new_seeds) end)
+  end
+
+  def parse([[_map_name | maps_array] | rest], seeds) do
+    new_seeds = map_seeds_with_map(seeds, maps_array)
+
+    parse(rest, new_seeds)
+  end
+
+  def parse([], seeds) do
+    seeds
+  end
+
+  defp map_seeds_with_map(seeds, maps_array) do
+    seeds
+    |> Enum.map(
+      &Task.async(fn ->
+        seed = &1
+
+        matching_map =
+          maps_array
+          |> Enum.map(fn x ->
+            Task.async(fn -> String.split(x, " ") end)
+          end)
+          |> Enum.map(fn x -> Task.await(x, @timeout) end)
+          |> Enum.find(fn [_destination, source, range] ->
+            s = String.to_integer(source)
+            r = String.to_integer(range)
+            seed_int = String.to_integer(seed)
+
+            s + r - 1 >= seed_int and s <= seed_int
+          end)
+
+        if is_nil(matching_map) do
+          seed
+        else
+          [destination, source, _range] = matching_map
+
+          s = String.to_integer(source)
+          d = String.to_integer(destination)
+
+          Integer.to_string(String.to_integer(seed) + d - s)
+        end
+      end)
+    )
+    |> Enum.map(fn x -> Task.await(x, @timeout) end)
+  end
+end
+```
+
+```elixir
+input
+|> String.split("\n\n", trim: true)
+|> Enum.map(fn x -> String.split(x, ~r/(:\n|: |\n)/, trim: true) end)
+|> MapModulePart2.parse()
+|> Enum.map(&String.to_integer/1)
+|> Enum.min()
+```
