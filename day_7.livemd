@@ -1,0 +1,200 @@
+# Day 7
+
+## Setup
+
+```elixir
+Mix.install([{:kino, github: "livebook-dev/kino"}])
+```
+
+```elixir
+input = Kino.Input.textarea("Put your input here:")
+```
+
+```elixir
+input = Kino.Input.read(input)
+```
+
+## part 1
+
+```elixir
+defmodule Hand do
+  def parse_card("T") do
+    "10"
+  end
+
+  def parse_card("J") do
+    "11"
+  end
+
+  def parse_card("Q") do
+    "12"
+  end
+
+  def parse_card("K") do
+    "13"
+  end
+
+  def parse_card("A") do
+    "14"
+  end
+
+  def parse_card(d) do
+    "0" <> d
+  end
+
+  def parse_hand(hand) do
+    hand
+    |> String.split("", trim: true)
+    |> Enum.reduce("", fn x, acc ->
+      acc <> parse_card(x)
+    end)
+  end
+
+  def calculate_hand_score(hand) do
+    values =
+      hand
+      |> String.split("", trim: true)
+      |> Enum.frequencies()
+      |> Enum.map(fn {_, count} -> count end)
+
+    convert_hand_count_to_score(values)
+  end
+
+  def convert_hand_count_to_score(values) do
+    cond do
+      5 in values -> "9"
+      4 in values -> "8"
+      3 in values and 2 in values -> "7"
+      3 in values -> "6"
+      Enum.count(values, fn value -> value == 2 end) == 2 -> "5"
+      Enum.count(values, fn value -> value == 2 end) == 1 -> "4"
+      Enum.count(values, fn value -> value == 1 end) == 5 -> "3"
+      true -> "2"
+    end
+  end
+end
+```
+
+```elixir
+input
+|> String.split("\n", trim: true)
+|> Enum.map(&String.split(&1, " ", trim: true))
+|> Enum.map(fn [hand, bid] ->
+  {Hand.calculate_hand_score(hand) <> Hand.parse_hand(hand), bid}
+end)
+|> Enum.sort_by(fn {x, _} -> String.to_integer(x) end)
+|> Enum.with_index(1)
+|> Enum.map(fn {{_, bid}, rank} -> rank * String.to_integer(bid) end)
+|> Enum.sum()
+```
+
+## Part 2
+
+```elixir
+defmodule HandPart2 do
+  def parse_card("T") do
+    "10"
+  end
+
+  def parse_card("J") do
+    "01"
+  end
+
+  def parse_card("Q") do
+    "12"
+  end
+
+  def parse_card("K") do
+    "13"
+  end
+
+  def parse_card("A") do
+    "14"
+  end
+
+  def parse_card(d) do
+    "0" <> d
+  end
+
+  def parse_hand(hand) do
+    hand
+    |> String.split("", trim: true)
+    |> Enum.reduce("", fn x, acc ->
+      acc <> parse_card(x)
+    end)
+  end
+
+  def calculate_hand_score(hand) do
+    cards =
+      hand
+      |> String.split("", trim: true)
+
+    frequencies =
+      cards
+      |> Enum.frequencies()
+
+    values =
+      frequencies
+      |> Enum.map(fn {_, count} -> count end)
+
+    case frequencies do
+      %{"J" => 5} ->
+        "9"
+
+      %{"J" => jCount} ->
+        values_with_index =
+          values
+          |> List.delete(jCount)
+          |> Enum.with_index()
+
+        {_, max_index} =
+          values_with_index
+          |> IO.inspect()
+          |> Enum.max_by(fn {x, _} -> x end)
+
+        new_values =
+          values_with_index
+          |> Enum.map(fn {x, index} ->
+            if index == max_index do
+              x + jCount
+            else
+              x
+            end
+          end)
+
+        convert_hand_count_to_score(new_values)
+
+      _ ->
+        convert_hand_count_to_score(values)
+    end
+  end
+
+  def convert_hand_count_to_score(values) do
+    cond do
+      5 in values -> "9"
+      4 in values -> "8"
+      3 in values and 2 in values -> "7"
+      3 in values -> "6"
+      Enum.count(values, fn value -> value == 2 end) == 2 -> "5"
+      Enum.count(values, fn value -> value == 2 end) == 1 -> "4"
+      Enum.count(values, fn value -> value == 1 end) == 5 -> "3"
+      true -> "2"
+    end
+  end
+end
+```
+
+```elixir
+input
+|> String.split("\n", trim: true)
+|> Enum.map(&String.split(&1, " ", trim: true))
+|> Enum.map(fn [hand, bid] ->
+  {HandPart2.calculate_hand_score(hand) <> HandPart2.parse_hand(hand), bid}
+end)
+|> Enum.sort_by(fn {x, _} -> String.to_integer(x) end)
+|> Enum.with_index(1)
+|> Enum.map(fn {{_, bid}, rank} ->
+  rank * String.to_integer(bid)
+end)
+|> Enum.sum()
+```
