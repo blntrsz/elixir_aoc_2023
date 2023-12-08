@@ -1,0 +1,136 @@
+# Day 7
+
+## Setup
+
+```elixir
+Mix.install([{:kino, github: "livebook-dev/kino"}, {:math, "~> 0.6.0"}])
+```
+
+```elixir
+input = Kino.Input.textarea("Put your input here:")
+```
+
+```elixir
+input = Kino.Input.read(input)
+```
+
+## part 2
+
+```elixir
+defmodule GhostMapWalker do
+  def start(map, steps) do
+    map
+    |> get_nodes("A")
+    |> Enum.map(fn map_key -> walk(map_key, map, steps, 0) end)
+    |> Enum.reduce(fn x, acc -> Math.lcm(acc, x) end)
+  end
+
+  def walk(map_key, map, steps, count) do
+    directon = Enum.at(steps, rem(count, length(steps)))
+
+    if String.ends_with?(map_key, "Z") do
+      count
+    else
+      walk(map[map_key][directon], map, steps, count + 1)
+    end
+  end
+
+  def get_nodes(map, ending_char) do
+    map
+    |> Map.keys()
+    |> Enum.filter(fn x -> String.ends_with?(x, ending_char) end)
+  end
+end
+```
+
+```elixir
+[steps, map] =
+  input
+  |> String.split("\n\n", trim: true)
+  |> then(fn [steps, map] -> [steps, String.split(map, "\n", trim: true)] end)
+
+map =
+  map
+  |> Enum.reduce(%{}, fn x, acc ->
+    String.split(x, " = ")
+    |> then(fn [head, tail] ->
+      %{
+        head =>
+          tail
+          |> String.replace("(", "")
+          |> String.replace(")", "")
+          |> String.split(", ")
+          |> then(fn [left, right] ->
+            %{"L" => left, "R" => right}
+          end)
+      }
+    end)
+    |> Map.merge(acc)
+  end)
+
+steps =
+  steps
+  |> String.split("", trim: true)
+
+GhostMapWalker.start(map, steps)
+```
+
+## part 1
+
+```elixir
+defmodule MapWalker do
+  def start(map, steps) do
+    walk("AAA", map, steps)
+  end
+
+  def walk("AAA", map, steps) do
+    first_direction =
+      steps
+      |> List.first()
+
+    walk(map["AAA"][first_direction], map, steps, 1)
+  end
+
+  def walk("ZZZ", _map, _steps, count) do
+    count
+  end
+
+  def walk(map_key, map, steps, count) do
+    directon = Enum.at(steps, rem(count, length(steps)))
+
+    walk(map[map_key][directon], map, steps, count + 1)
+  end
+end
+```
+
+```elixir
+[steps, map] =
+  input
+  |> String.split("\n\n", trim: true)
+  |> then(fn [steps, map] -> [steps, String.split(map, "\n", trim: true)] end)
+
+map =
+  map
+  |> Enum.reduce(%{}, fn x, acc ->
+    String.split(x, " = ")
+    |> then(fn [head, tail] ->
+      %{
+        head =>
+          tail
+          |> String.replace("(", "")
+          |> String.replace(")", "")
+          |> String.split(", ")
+          |> then(fn [left, right] ->
+            %{"L" => left, "R" => right}
+          end)
+      }
+    end)
+    |> Map.merge(acc)
+  end)
+
+steps =
+  steps
+  |> String.split("", trim: true)
+
+MapWalker.start(map, steps)
+```
