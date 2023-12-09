@@ -1,0 +1,96 @@
+# Day 9
+
+## Setup
+
+```elixir
+Mix.install([{:kino, github: "livebook-dev/kino"}, {:math, "~> 0.6.0"}])
+```
+
+```elixir
+input = Kino.Input.textarea("Put your input here:")
+```
+
+```elixir
+input = Kino.Input.read(input)
+```
+
+## part 1
+
+```elixir
+defmodule Sensor do
+  def calculate_next_row([first, second | tail], next_row, all_rows) do
+    calculate_next_row([second] ++ tail, next_row ++ [second - first], all_rows)
+  end
+
+  def calculate_next_row([_], next_row, all_rows) do
+    is_all_zero_array = Enum.all?(Enum.map(next_row, fn x -> x == 0 end))
+
+    if is_all_zero_array and length(next_row) > 0 do
+      all_rows ++ [next_row]
+    else
+      calculate_next_row(next_row, [], all_rows ++ [next_row])
+    end
+  end
+
+  def calculate_next_row([], _, _) do
+    raise "Error"
+  end
+end
+```
+
+```elixir
+inputs =
+  input
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn x ->
+    String.split(x, " ")
+    |> Enum.map(&String.to_integer/1)
+  end)
+
+inputs
+|> Enum.map(fn arr ->
+  Sensor.calculate_next_row(arr, [], [arr])
+end)
+|> Enum.map(fn x ->
+  Enum.reduce(x, 0, fn y, acc ->
+    acc + List.last(y)
+  end)
+end)
+|> Enum.sum()
+```
+
+## part 2
+
+```elixir
+defmodule Expander do
+  def expand([first | rest], prev_first_value, values) do
+    value = List.first(first) - prev_first_value
+    expand(rest, value, values ++ [value])
+  end
+
+  def expand([], _prev_first_value, values) do
+    values
+  end
+end
+```
+
+```elixir
+inputs =
+  input
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn x ->
+    String.split(x, " ")
+    |> Enum.map(&String.to_integer/1)
+  end)
+
+inputs =
+  inputs
+  |> Enum.map(fn arr ->
+    Sensor.calculate_next_row(arr, [], [arr])
+  end)
+  |> Enum.map(fn inp ->
+    Expander.expand(Enum.reverse(inp), 0, [])
+    |> List.last()
+  end)
+  |> Enum.sum()
+```
