@@ -1,0 +1,289 @@
+# Day 10
+
+## Setup
+
+```elixir
+Mix.install([{:kino, github: "livebook-dev/kino"}, {:math, "~> 0.6.0"}, {:topo, "~> 1.0"}])
+```
+
+```elixir
+input = Kino.Input.textarea("Put your input here:")
+```
+
+```elixir
+input = Kino.Input.read(input)
+```
+
+## part 1
+
+```elixir
+defmodule PipeWalker do
+  def walk(pipes_map, {row_index, col_index}) do
+    top = pipes_map[row_index - 1][col_index] |> calc_top()
+    bottom = pipes_map[row_index + 1][col_index] |> calc_bottom()
+    left = pipes_map[row_index][col_index - 1] |> calc_left()
+    right = pipes_map[row_index][col_index + 1] |> calc_right()
+
+    {row_index_diff, col_index_diff, new_direction} =
+      Enum.find([top, bottom, left, right], fn x -> !is_nil(x) end)
+
+    {new_row_index, new_col_index} = {row_index + row_index_diff, col_index + col_index_diff}
+
+    walk(pipes_map, {new_row_index, new_col_index}, new_direction, 1)
+  end
+
+  def walk(pipes_map, {row_index, col_index}, direction, count) do
+    current_value = pipes_map[row_index][col_index]
+
+    diff =
+      case direction do
+        "top" -> calc_top(current_value)
+        "bottom" -> calc_bottom(current_value)
+        "left" -> calc_left(current_value)
+        "right" -> calc_right(current_value)
+      end
+
+    IO.inspect(pipes_map[row_index][col_index])
+
+    if is_nil(diff) do
+      raise "Error"
+    end
+
+    {row_index_diff, col_index_diff, new_direction} = diff
+
+    {new_row_index, new_col_index} = {row_index + row_index_diff, col_index + col_index_diff}
+
+    if pipes_map[new_row_index][new_col_index] == "S" do
+      (count + 1) / 2
+    else
+      walk(pipes_map, {new_row_index, new_col_index}, new_direction, count + 1)
+    end
+  end
+
+  defp calc_top(value) do
+    case value do
+      "|" -> {-1, 0, "top"}
+      "7" -> {0, -1, "left"}
+      "F" -> {0, 1, "right"}
+      _ -> nil
+    end
+  end
+
+  defp calc_bottom(value) do
+    case value do
+      "|" -> {1, 0, "bottom"}
+      "L" -> {0, 1, "right"}
+      "J" -> {0, -1, "left"}
+      _ -> nil
+    end
+  end
+
+  defp calc_left(value) do
+    case value do
+      "-" -> {0, -1, "left"}
+      "F" -> {1, 0, "bottom"}
+      "L" -> {-1, 0, "top"}
+      _ -> nil
+    end
+  end
+
+  defp calc_right(value) do
+    case value do
+      "-" -> {0, 1, "right"}
+      "7" -> {1, 0, "bottom"}
+      "J" -> {-1, 0, "top"}
+      _ -> nil
+    end
+  end
+end
+```
+
+```elixir
+pipes_map =
+  input
+  |> String.split("\n", trim: true)
+  |> Enum.with_index()
+  |> Enum.map(fn {row, index} ->
+    String.split(row, "", trim: true)
+    |> Enum.with_index()
+    |> then(fn x -> {x, index} end)
+  end)
+
+starting_pos =
+  pipes_map
+  |> Enum.reduce({0, 0}, fn {row, row_index}, acc ->
+    el =
+      row
+      |> Enum.find(fn {item, _} -> item == "S" end)
+
+    if is_nil(el) do
+      acc
+    else
+      {_, col_index} = el
+      {row_index, col_index}
+    end
+  end)
+
+pipes_map =
+  pipes_map
+  |> Enum.map(fn {row, index} ->
+    row_map =
+      Enum.map(row, fn {item, i} ->
+        %{i => item}
+      end)
+      |> Enum.reduce(fn x, acc -> Map.merge(acc, x) end)
+
+    {row_map, index}
+  end)
+  |> Enum.map(fn {row, index} ->
+    %{index => row}
+  end)
+  |> Enum.reduce(fn x, acc -> Map.merge(acc, x) end)
+
+PipeWalker.walk(pipes_map, starting_pos)
+```
+
+## part 2
+
+```elixir
+defmodule PipeWalkerPart2 do
+  def walk(pipes_map, {row_index, col_index}) do
+    top = pipes_map[row_index - 1][col_index] |> calc_top()
+    bottom = pipes_map[row_index + 1][col_index] |> calc_bottom()
+    left = pipes_map[row_index][col_index - 1] |> calc_left()
+    right = pipes_map[row_index][col_index + 1] |> calc_right()
+
+    {row_index_diff, col_index_diff, new_direction} =
+      Enum.find([top, bottom, left, right], fn x -> !is_nil(x) end)
+
+    {new_row_index, new_col_index} = {row_index + row_index_diff, col_index + col_index_diff}
+
+    walk(pipes_map, {new_row_index, new_col_index}, new_direction, [{row_index, col_index}])
+  end
+
+  def walk(pipes_map, {row_index, col_index}, direction, points) do
+    current_value = pipes_map[row_index][col_index]
+
+    diff =
+      case direction do
+        ~c"top" -> calc_top(current_value)
+        ~c"bottom" -> calc_bottom(current_value)
+        ~c"left" -> calc_left(current_value)
+        ~c"right" -> calc_right(current_value)
+      end
+
+    if is_nil(diff) do
+      raise "Error"
+    end
+
+    {row_index_diff, col_index_diff, new_direction} = diff
+
+    {new_row_index, new_col_index} = {row_index + row_index_diff, col_index + col_index_diff}
+
+    if pipes_map[new_row_index][new_col_index] == "S" do
+      points ++ [{row_index, col_index}]
+    else
+      walk(
+        pipes_map,
+        {new_row_index, new_col_index},
+        new_direction,
+        points ++ [{row_index, col_index}]
+      )
+    end
+  end
+
+  defp calc_top(value) do
+    case value do
+      "|" -> {-1, 0, ~c"top"}
+      "7" -> {0, -1, ~c"left"}
+      "F" -> {0, 1, ~c"right"}
+      _ -> nil
+    end
+  end
+
+  defp calc_bottom(value) do
+    case value do
+      "|" -> {1, 0, ~c"bottom"}
+      "L" -> {0, 1, ~c"right"}
+      "J" -> {0, -1, ~c"left"}
+      _ -> nil
+    end
+  end
+
+  defp calc_left(value) do
+    case value do
+      "-" -> {0, -1, ~c"left"}
+      "F" -> {1, 0, ~c"bottom"}
+      "L" -> {-1, 0, ~c"top"}
+      _ -> nil
+    end
+  end
+
+  defp calc_right(value) do
+    case value do
+      "-" -> {0, 1, ~c"right"}
+      "7" -> {1, 0, ~c"bottom"}
+      "J" -> {-1, 0, ~c"top"}
+      _ -> nil
+    end
+  end
+end
+```
+
+```elixir
+pipes_map =
+  input
+  |> String.split("\n", trim: true)
+  |> Enum.with_index()
+  |> Enum.map(fn {row, index} ->
+    String.split(row, "", trim: true)
+    |> Enum.with_index()
+    |> then(fn x -> {x, index} end)
+  end)
+
+starting_pos =
+  pipes_map
+  |> Enum.reduce({0, 0}, fn {row, row_index}, acc ->
+    el =
+      row
+      |> Enum.find(fn {item, _} -> item == "S" end)
+
+    if is_nil(el) do
+      acc
+    else
+      {_, col_index} = el
+      {row_index, col_index}
+    end
+  end)
+
+pipes_map =
+  pipes_map
+  |> Enum.map(fn {row, index} ->
+    row_map =
+      Enum.map(row, fn {item, i} ->
+        %{i => item}
+      end)
+      |> Enum.reduce(fn x, acc -> Map.merge(acc, x) end)
+
+    {row_map, index}
+  end)
+  |> Enum.map(fn {row, index} ->
+    %{index => row}
+  end)
+  |> Enum.reduce(fn x, acc -> Map.merge(acc, x) end)
+
+coordinates = PipeWalkerPart2.walk(pipes_map, starting_pos)
+
+rows = input |> String.split("\n", trim: true)
+row_count = rows |> length()
+col_count = rows |> List.first() |> String.length()
+
+for row_index <- 0..(row_count - 1), col_index <- 0..(col_count - 1) do
+  Topo.contains?(
+    %{type: "Polygon", coordinates: [coordinates]},
+    %{type: "Point", coordinates: {row_index, col_index}}
+  )
+end
+|> Enum.filter(fn x -> x end)
+|> Enum.count()
+```
