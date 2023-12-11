@@ -1,0 +1,151 @@
+# Day 11
+
+## Setup
+
+```elixir
+Mix.install([{:kino, github: "livebook-dev/kino"}, {:math, "~> 0.6.0"}, {:topo, "~> 1.0"}])
+```
+
+```elixir
+input = Kino.Input.textarea("Put your input here:")
+```
+
+```elixir
+input = Kino.Input.read(input)
+```
+
+## part 1
+
+```elixir
+rows =
+  input
+  |> String.split("\n")
+  |> Enum.map(fn x ->
+    if String.contains?(x, "#") do
+      x
+    else
+      [x, x]
+    end
+  end)
+  |> List.flatten()
+
+columns =
+  for col_index <- 0..(String.length(List.first(rows)) - 1) do
+    for row_index <- 0..(length(rows) - 1) do
+      String.at(Enum.at(rows, row_index), col_index)
+    end
+    |> List.to_string()
+  end
+  |> Enum.map(fn x ->
+    if String.contains?(x, "#") do
+      x
+    else
+      [x, x]
+    end
+  end)
+  |> List.flatten()
+
+flat_space =
+  for col_index <- 0..(String.length(List.first(columns)) - 1) do
+    for row_index <- 0..(length(columns) - 1) do
+      String.at(Enum.at(columns, row_index), col_index)
+    end
+    |> List.to_string()
+  end
+  |> Enum.with_index()
+  |> Enum.map(fn {row, row_index} ->
+    String.split(row, "", trim: true)
+    |> Enum.with_index()
+    |> Enum.map(fn {char, col_index} ->
+      {char, row_index, col_index}
+    end)
+  end)
+  |> List.flatten()
+
+galaxies =
+  flat_space
+  |> Enum.filter(fn {char, _, _} -> char == "#" end)
+
+for {_, first_row_index, first_column_index} <- galaxies,
+    {_, second_row_index, second_column_index} <- galaxies do
+  abs(first_row_index - second_row_index) + abs(first_column_index - second_column_index)
+end
+|> then(fn x -> Enum.sum(x) / 2 end)
+```
+
+## part 2
+
+```elixir
+space_increase = 1_000_000 - 1
+
+flat_space =
+  input
+  |> String.split("\n")
+  |> Enum.with_index()
+  |> Enum.map(fn {row, row_index} ->
+    String.split(row, "", trim: true)
+    |> Enum.with_index()
+    |> Enum.map(fn {char, col_index} ->
+      {char, row_index, col_index}
+    end)
+  end)
+  |> List.flatten()
+
+empty_spaces =
+  flat_space
+  |> Enum.filter(fn {char, _, _} -> char == "." end)
+
+space_fold_rows =
+  empty_spaces
+  |> Enum.group_by(fn {_, r_i, _} -> r_i end)
+  |> Enum.filter(fn {_, list} ->
+    {_, last_row, _} = List.last(flat_space)
+    length(list) > last_row
+  end)
+  |> Enum.map(fn {index, _} -> index end)
+  |> Enum.reverse()
+
+space_fold_columns =
+  empty_spaces
+  |> Enum.group_by(fn {_, _, c_i} -> c_i end)
+  |> Enum.filter(fn {_, list} ->
+    {_, _, last_column} = List.last(flat_space)
+    length(list) > last_column
+  end)
+  |> Enum.map(fn {index, _} -> index end)
+  |> Enum.reverse()
+
+folded_flat_space =
+  for {char, row_index, col_index} <- flat_space do
+    new_row_index =
+      Enum.reduce(space_fold_rows, row_index, fn x, acc ->
+        if acc > x do
+          acc + space_increase
+        else
+          acc
+        end
+      end)
+
+    new_col_index =
+      Enum.reduce(space_fold_columns, col_index, fn x, acc ->
+        if acc > x do
+          acc + space_increase
+        else
+          acc
+        end
+      end)
+
+    {char, new_row_index, new_col_index}
+  end
+
+galaxies =
+  folded_flat_space
+  |> Enum.filter(fn {char, _, _} -> char == "#" end)
+
+for {_, first_row_index, first_column_index} <- galaxies,
+    {_, second_row_index, second_column_index} <- galaxies do
+  IO.inspect({{first_row_index, first_column_index}, {second_row_index, second_column_index}})
+  abs(first_row_index - second_row_index) + abs(first_column_index - second_column_index)
+end
+|> then(fn x -> Enum.sum(x) / 2 end)
+```
